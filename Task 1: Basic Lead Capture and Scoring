@@ -1,0 +1,73 @@
+import gspread
+from google.oauth2.service_account import Credentials
+
+# Authenticate with Google Sheets
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+client = gspread.authorize(creds)
+
+# Open the spreadsheet
+sheet = client.open("Lead Management").sheet1
+
+# Scoring function
+def calculate_lead_score(company_size, budget, industry, urgency):
+    score = 0
+    size_scores = {"1-50": 10, "51-200": 20, "201-1000": 30, "1000+": 40}
+    budget_scores = {"<10k": 5, "10k-50k": 15, "50k-100k": 25, "100k+": 35}
+    industry_scores = {"Technology": 20, "Finance": 15, "Healthcare": 25, "Retail": 10, "Other": 5}
+    urgency_scores = {"Immediate": 30, "Short-term": 20, "Medium-term": 10, "Long-term": 5}
+    
+    score += size_scores.get(company_size, 0)
+    score += budget_scores.get(budget, 0)
+    score += industry_scores.get(industry, 0)
+    score += urgency_scores.get(urgency, 0)
+    
+    return score
+
+# Example data
+lead_data = {
+    "company_size": "51-200",
+    "budget": "10k-50k",
+    "industry": "Technology",
+    "urgency": "Immediate",
+    "email": "example@company.com"
+}
+
+# Calculate lead score
+lead_score = calculate_lead_score(lead_data["company_size"], lead_data["budget"], lead_data["industry"], lead_data["urgency"])
+
+# Add to Google Sheets
+sheet.append_row([lead_data["email"], lead_data["company_size"], lead_data["budget"], lead_data["industry"], lead_data["urgency"], lead_score])
+
+# Send email if score > 70
+if lead_score > 70:
+    # Call the send_email function (defined later)
+    send_email(lead_data["email"], "Welcome to TechNova!", "Thank you for your interest. Let's connect!")
+else:
+    # Add to nurturing campaigns sheet
+    nurture_sheet = client.open("Lead Nurturing").sheet1
+    nurture_sheet.append_row([lead_data["email"], lead_score])
+import smtplib
+from email.mime.text import MIMEText
+
+def send_email(to_email, subject, body):
+    # Gmail SMTP setup
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+    from_email = "your-email@gmail.com"
+    password = "your-email-password"
+
+    # Email content
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = from_email
+    msg["To"] = to_email
+
+    # Send the email
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()
+        server.login(from_email, password)
+        server.sendmail(from_email, to_email, msg.as_string())
+
+
+
