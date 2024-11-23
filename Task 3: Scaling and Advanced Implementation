@@ -1,0 +1,38 @@
+sales_reps = ["rep1@technova.com", "rep2@technova.com", "rep3@technova.com"]
+rep_index = 0
+
+# Assign sales rep in a round-robin fashion
+def assign_sales_rep():
+    global rep_index
+    assigned_rep = sales_reps[rep_index]
+    rep_index = (rep_index + 1) % len(sales_reps)
+    return assigned_rep
+import re
+
+def categorize_lead(comments):
+    keywords = {
+        "Hot": ["urgent", "immediate", "priority"],
+        "Warm": ["considering", "interested", "budget"],
+        "Cold": ["later", "exploring", "unsure"]
+    }
+    for category, words in keywords.items():
+        for word in words:
+            if re.search(rf"\b{word}\b", comments, re.IGNORECASE):
+                return category
+    return "Cold"
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+# Authenticate with Google Calendar API
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
+flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+creds = flow.run_local_server(port=0)
+service = build("calendar", "v3", credentials=creds)
+
+def schedule_follow_up(email, date_time):
+    event = {
+        "summary": f"Follow-up with {email}",
+        "start": {"dateTime": date_time, "timeZone": "UTC"},
+        "end": {"dateTime": date_time, "timeZone": "UTC"},
+    }
+    service.events().insert(calendarId="primary", body=event).execute()
