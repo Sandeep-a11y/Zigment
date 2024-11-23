@@ -1,0 +1,20 @@
+def validate_lead_data(lead_data):
+    required_fields = ["company_size", "budget", "industry", "urgency", "email"]
+    for field in required_fields:
+        if field not in lead_data or not lead_data[field]:
+            return False, f"Missing field: {field}"
+    return True, "Valid data"
+if lead_score > 80:  # Flag high-value leads
+    # Add a flag in the Google Sheet
+    sheet.append_row([lead_data["email"], "High-value Lead", lead_score])
+    # Notify the team
+    send_email("sales-team@technova.com", "High-Value Lead Alert", f"Lead details: {lead_data}")
+from datetime import datetime
+import pytz
+
+def adjust_time_zone(submitted_time, lead_time_zone, company_time_zone="UTC"):
+    tz_lead = pytz.timezone(lead_time_zone)
+    tz_company = pytz.timezone(company_time_zone)
+    
+    local_time = datetime.strptime(submitted_time, "%Y-%m-%d %H:%M:%S").astimezone(tz_lead)
+    return local_time.astimezone(tz_company).strftime("%Y-%m-%d %H:%M:%S")
